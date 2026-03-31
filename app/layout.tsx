@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bebas_Neue, DM_Sans } from "next/font/google";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { ui } from "@/lib/i18n/ui";
 import "./globals.css";
 
 const display = Bebas_Neue({
@@ -16,8 +17,8 @@ const sans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Club Floor — Venue management",
-  description: "Nightclub operations: staff, services, and consumption tracking.",
+  title: ui.meta.title,
+  description: ui.meta.description,
 };
 
 export default function RootLayout({
@@ -27,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${display.variable} ${sans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">

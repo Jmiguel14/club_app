@@ -1,6 +1,7 @@
 import { isAxiosError } from "axios";
 
 import { api, authTokenFromResponse } from "@/lib/api/client";
+import { ui } from "@/lib/i18n/ui";
 import type { AuthUser } from "@/lib/types/auth";
 
 type AuthSuccessBody = {
@@ -72,12 +73,12 @@ export async function signup(params: {
   const body = res.data;
 
   if (res.status < 200 || res.status >= 300) {
-    const errors = errorsFromBody(body, "Could not create account");
-    throw new AuthApiError(errors[0] ?? "Sign up failed", res.status, errors);
+    const errors = errorsFromBody(body, ui.api.couldNotCreateAccount);
+    throw new AuthApiError(errors[0] ?? ui.api.signUpFailed, res.status, errors);
   }
 
   if (!token || !body?.user) {
-    throw new AuthApiError("Missing token or user in response", res.status);
+    throw new AuthApiError(ui.api.missingTokenOrUser, res.status);
   }
 
   return { token, user: body.user };
@@ -102,12 +103,12 @@ export async function login(params: {
   const body = res.data;
 
   if (res.status < 200 || res.status >= 300) {
-    const errors = errorsFromBody(body, "Invalid email or password");
-    throw new AuthApiError(errors[0] ?? "Login failed", res.status, errors);
+    const errors = errorsFromBody(body, ui.api.invalidEmailOrPassword);
+    throw new AuthApiError(errors[0] ?? ui.api.loginFailed, res.status, errors);
   }
 
   if (!token || !body?.user) {
-    throw new AuthApiError("Missing token or user in response", res.status);
+    throw new AuthApiError(ui.api.missingTokenOrUser, res.status);
   }
 
   return { token, user: body.user };
@@ -120,8 +121,8 @@ export async function logout(): Promise<void> {
 export async function fetchCurrentUser(): Promise<AuthUser> {
   const res = await api.get<{ user: AuthUser }>("/me");
   if (res.status < 200 || res.status >= 300 || !res.data?.user) {
-    const errors = errorsFromBody(res.data, "Could not load profile");
-    throw new AuthApiError(errors[0] ?? "Profile error", res.status, errors);
+    const errors = errorsFromBody(res.data, ui.api.couldNotLoadProfile);
+    throw new AuthApiError(errors[0] ?? ui.api.profileError, res.status, errors);
   }
   return res.data.user;
 }

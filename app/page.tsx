@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ui } from "@/lib/i18n/ui";
+
 export default function Home() {
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -13,7 +15,7 @@ export default function Home() {
       />
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 py-24 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.35em] text-[var(--accent)]">
-          Venue ops
+          {ui.home.tagline}
         </p>
         <h1
           className="mt-4 max-w-lg [font-family:var(--font-display)] text-5xl leading-none tracking-[0.12em] text-[var(--foreground)] sm:text-6xl"
@@ -21,21 +23,20 @@ export default function Home() {
           CLUB FLOOR
         </h1>
         <p className="mt-6 max-w-md text-base leading-relaxed text-[var(--muted)]">
-          Management console for nightclubs — track what your team offers and
-          what moves across the bar.
+          {ui.home.description}
         </p>
         <div className="mt-12 flex w-full max-w-sm flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             href="/login"
             className="rounded-lg bg-gradient-to-r from-[var(--accent-dim)] to-[var(--accent)] px-8 py-3.5 text-center text-sm font-semibold uppercase tracking-widest text-black shadow-[0_0_28px_-6px_var(--accent)] transition-opacity hover:opacity-95"
           >
-            Sign in
+            {ui.home.signIn}
           </Link>
           <Link
             href="/signup"
             className="rounded-lg border border-white/15 px-8 py-3.5 text-center text-sm font-semibold uppercase tracking-widest text-[var(--foreground)] transition-colors hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
           >
-            Register
+            {ui.home.register}
           </Link>
         </div>
       </main>

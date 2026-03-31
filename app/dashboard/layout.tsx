@@ -5,12 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
+import { ui } from "@/lib/i18n/ui";
 import { useAuthStore } from "@/store/auth-store";
 
 const nav = [
-  { href: "/dashboard", label: "Control room" },
-  { href: "/dashboard/apartments", label: "Roster" },
-  { href: "/dashboard/invoices", label: "Tabs" },
+  { href: "/dashboard", label: ui.nav.controlRoom },
+  { href: "/dashboard/apartments", label: ui.nav.roster },
+  { href: "/dashboard/products", label: ui.nav.catalog },
+  { href: "/dashboard/invoices", label: ui.nav.tabs },
 ] as const;
 
 export default function DashboardLayout({
@@ -44,7 +46,7 @@ export default function DashboardLayout({
             href="/dashboard"
             className="shrink-0 [font-family:var(--font-display)] text-xl tracking-[0.18em] text-[var(--accent)] transition-opacity hover:opacity-90"
           >
-            FLOOR
+            {ui.nav.brand}
           </Link>
           <div className="flex flex-wrap gap-6">
             {nav.map(({ href, label }) => {
@@ -71,7 +73,7 @@ export default function DashboardLayout({
             href="/"
             className="ml-auto text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
           >
-            Home
+            {ui.nav.home}
           </Link>
         </nav>
       </header>

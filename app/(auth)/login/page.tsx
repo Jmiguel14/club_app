@@ -9,6 +9,7 @@ import { NeonInput } from "@/components/auth/neon-input";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import { useLoginMutation } from "@/hooks/use-login-mutation";
 import { toAuthApiError } from "@/lib/auth-api";
+import { ui } from "@/lib/i18n/ui";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
@@ -34,7 +35,7 @@ export default function LoginPage() {
     try {
       await loginMutation.mutateAsync({ email, password });
     } catch (err) {
-      const mapped = toAuthApiError(err, "Something went wrong. Try again.");
+      const mapped = toAuthApiError(err, ui.login.genericError);
       setError(mapped.errors.join(" ") || mapped.message);
     }
   }
@@ -50,14 +51,11 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthCard
-      title="ENTER"
-      subtitle="Nightclub management — staff sign in"
-    >
+    <AuthCard title={ui.login.title} subtitle={ui.login.subtitle}>
       <form onSubmit={onSubmit} className="space-y-5">
         <NeonInput
           id="email"
-          label="Email"
+          label={ui.login.email}
           type="email"
           autoComplete="email"
           value={email}
@@ -66,7 +64,7 @@ export default function LoginPage() {
         />
         <NeonInput
           id="password"
-          label="Password"
+          label={ui.login.password}
           type="password"
           autoComplete="current-password"
           value={password}
@@ -86,16 +84,16 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded-lg bg-gradient-to-r from-[var(--accent-dim)] to-[var(--accent)] py-3.5 text-sm font-semibold uppercase tracking-widest text-black shadow-[0_0_24px_-4px_var(--accent)] transition-opacity hover:opacity-95 disabled:opacity-50"
         >
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? ui.login.submitting : ui.login.submit}
         </button>
       </form>
       <p className="mt-8 text-center text-sm text-[var(--muted)]">
-        New venue?{" "}
+        {ui.login.footer}{" "}
         <Link
           href="/signup"
           className="font-medium text-[var(--accent)] underline-offset-4 hover:underline"
         >
-          Create account
+          {ui.login.createAccount}
         </Link>
       </p>
     </AuthCard>

@@ -12,9 +12,10 @@ import {
 import { useInvoiceQuery } from "@/hooks/use-invoice-query";
 import { useProductsQuery } from "@/hooks/use-products-query";
 import { useUnauthorizedRedirect } from "@/hooks/use-unauthorized-redirect";
-import { draftLineTotal } from "@/lib/invoices/invoice-totals";
+import { draftSignedContribution } from "@/lib/invoices/invoice-totals";
 import { invoiceLineDraftsFromDetails } from "@/lib/invoices/nested-details";
 import { AuthApiError, toAuthApiError } from "@/lib/auth-api";
+import { ui } from "@/lib/i18n/ui";
 import type { Apartment } from "@/lib/types/apartment";
 import type { Invoice, InvoiceLineDraft, InvoiceStatus } from "@/lib/types/invoice";
 import type { Product } from "@/lib/types/product";
@@ -113,7 +114,7 @@ function InvoiceEditorForm({
   );
 
   const draftTotal = useMemo(
-    () => visibleLines.reduce((s, l) => s + draftLineTotal(l), 0),
+    () => visibleLines.reduce((s, l) => s + draftSignedContribution(l), 0),
     [visibleLines],
   );
 
@@ -149,17 +150,18 @@ function InvoiceEditorForm({
   }
 
   function validate(): string | null {
-    if (apartmentId === "") return "Choose a roster profile.";
-    if (!issuedOn.trim()) return "Set a date.";
+    const v = ui.invoiceEditor.validation;
+    if (apartmentId === "") return v.chooseRoster;
+    if (!issuedOn.trim()) return v.setDate;
     for (const line of visibleLines) {
       if (line.kind === "product") {
-        if (line.productId === "") return "Each bar line needs a product.";
-        if (line.quantity < 1) return "Quantity must be at least 1.";
+        if (line.productId === "") return v.productNeedsProduct;
+        if (line.quantity < 1) return v.qtyMin;
       } else {
-        if (!line.label.trim()) return "Each service line needs a label.";
-        if (line.quantity < 1) return "Quantity must be at least 1.";
+        if (!line.label.trim()) return v.serviceNeedsLabel;
+        if (line.quantity < 1) return v.qtyMin;
         if (!line.pointCost.trim() || Number.parseFloat(line.pointCost) < 0) {
-          return "Service lines need a valid point value.";
+          return v.serviceNeedsPoints;
         }
       }
     }
@@ -189,7 +191,7 @@ function InvoiceEditorForm({
         await updateMutation.mutateAsync({ id: invoiceId, input });
       }
     } catch (err) {
-      const er = toAuthApiError(err, "Could not save invoice.");
+      const er = toAuthApiError(err, ui.invoiceEditor.saveError);
       setFormError(er.errors.join(" ") || er.message);
     }
   }
@@ -197,9 +199,7 @@ function InvoiceEditorForm({
   async function handleDeleteInvoice() {
     if (invoiceId == null) return;
     if (
-      !window.confirm(
-        "Delete this invoice and all of its lines? This cannot be undone.",
-      )
+      !window.confirm(ui.invoiceEditor.confirmDelete)
     ) {
       return;
     }
@@ -207,7 +207,7 @@ function InvoiceEditorForm({
     try {
       await deleteMutation.mutateAsync(invoiceId);
     } catch (err) {
-      const er = toAuthApiError(err, "Could not delete invoice.");
+      const er = toAuthApiError(err, ui.invoiceEditor.deleteError);
       setFormError(er.errors.join(" ") || er.message);
     }
   }
@@ -222,7 +222,7 @@ function InvoiceEditorForm({
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label htmlFor="apartment_id" className={labelClass}>
-            Roster profile
+            {ui.invoiceEditor.rosterProfile}
           </label>
           <select
             id="apartment_id"
@@ -236,7 +236,7 @@ function InvoiceEditorForm({
               )
             }
           >
-            <option value="">Select…</option>
+            <option value="">{ui.invoiceEditor.selectPlaceholder}</option>
             {apartments.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -246,7 +246,7 @@ function InvoiceEditorForm({
         </div>
         <div>
           <label htmlFor="issued_on" className={labelClass}>
-            Date
+            {ui.invoiceEditor.date}
           </label>
           <input
             id="issued_on"
@@ -260,7 +260,7 @@ function InvoiceEditorForm({
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="status" className={labelClass}>
-            Status
+            {ui.invoiceEditor.status}
           </label>
           <select
             id="status"
@@ -271,7 +271,7 @@ function InvoiceEditorForm({
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {ui.invoiceEditor.statusOption(s)}
               </option>
             ))}
           </select>
@@ -281,7 +281,7 @@ function InvoiceEditorForm({
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">
-            Lines
+            {ui.invoiceEditor.lines}
           </h2>
           <div className="flex flex-wrap gap-2">
             <button
@@ -292,7 +292,7 @@ function InvoiceEditorForm({
               }
               className="rounded-lg border border-white/15 px-3 py-2 text-xs font-medium uppercase tracking-wider text-[var(--foreground)] transition-colors hover:border-[var(--accent)]/40 disabled:opacity-40"
             >
-              + Bar product
+              {ui.invoiceEditor.addBarProduct}
             </button>
             <button
               type="button"
@@ -300,21 +300,20 @@ function InvoiceEditorForm({
               onClick={() => setLines((prev) => [...prev, newPointLine()])}
               className="rounded-lg border border-[var(--accent)]/35 bg-[var(--accent)]/10 px-3 py-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/15"
             >
-              + Service (points)
+              {ui.invoiceEditor.addServicePoints}
             </button>
           </div>
         </div>
 
         {products.length === 0 ? (
           <p className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-4 text-sm text-amber-100/90">
-            No products in the catalog yet. You can still add service (points)
-            lines; add products in the API to use bar lines.
+            {ui.invoiceEditor.noProductsHint}
           </p>
         ) : null}
 
         {visibleLines.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">
-            No lines yet. Add a bar product or a service line.
+            {ui.invoiceEditor.noLinesHint}
           </p>
         ) : (
           <ul className="space-y-4">
@@ -326,8 +325,8 @@ function InvoiceEditorForm({
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <span className="text-xs font-medium uppercase tracking-widest text-[var(--muted)]">
                     {line.kind === "product"
-                      ? "Bar product"
-                      : "Service · points"}
+                      ? ui.invoiceEditor.barProduct
+                      : ui.invoiceEditor.servicePoints}
                   </span>
                   <button
                     type="button"
@@ -335,13 +334,15 @@ function InvoiceEditorForm({
                     onClick={() => removeLine(line.key)}
                     className="text-xs text-red-300/90 hover:text-red-200"
                   >
-                    Remove
+                    {ui.invoiceEditor.remove}
                   </button>
                 </div>
                 {line.kind === "product" ? (
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="sm:col-span-1">
-                      <label className={labelClass}>Product</label>
+                      <label className={labelClass}>
+                        {ui.invoiceEditor.product}
+                      </label>
                       <select
                         className={fieldClass}
                         disabled={submitting}
@@ -357,7 +358,9 @@ function InvoiceEditorForm({
                           )
                         }
                       >
-                        <option value="">Select…</option>
+                        <option value="">
+                          {ui.invoiceEditor.selectPlaceholder}
+                        </option>
                         {products.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name} (${p.price})
@@ -366,7 +369,7 @@ function InvoiceEditorForm({
                       </select>
                     </div>
                     <div>
-                      <label className={labelClass}>Qty</label>
+                      <label className={labelClass}>{ui.invoiceEditor.qty}</label>
                       <input
                         type="number"
                         min={1}
@@ -384,7 +387,9 @@ function InvoiceEditorForm({
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Unit price</label>
+                      <label className={labelClass}>
+                        {ui.invoiceEditor.unitPrice}
+                      </label>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -400,12 +405,14 @@ function InvoiceEditorForm({
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="sm:col-span-1">
-                      <label className={labelClass}>Service label</label>
+                      <label className={labelClass}>
+                        {ui.invoiceEditor.serviceLabel}
+                      </label>
                       <input
                         type="text"
                         className={fieldClass}
                         disabled={submitting}
-                        placeholder="e.g. VIP host · stage"
+                        placeholder={ui.invoiceEditor.servicePlaceholder}
                         value={line.label}
                         onChange={(e) =>
                           updateLine(line.key, { label: e.target.value })
@@ -413,7 +420,7 @@ function InvoiceEditorForm({
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Qty</label>
+                      <label className={labelClass}>{ui.invoiceEditor.qty}</label>
                       <input
                         type="number"
                         min={1}
@@ -431,7 +438,9 @@ function InvoiceEditorForm({
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Points (value)</label>
+                      <label className={labelClass}>
+                        {ui.invoiceEditor.pointsValue}
+                      </label>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -446,9 +455,17 @@ function InvoiceEditorForm({
                   </div>
                 )}
                 <p className="mt-3 text-right text-sm text-[var(--muted)]">
-                  Line subtotal:{" "}
-                  <span className="font-medium text-[var(--accent)]">
-                    {draftLineTotal(line).toFixed(2)}
+                  {line.kind === "product"
+                    ? ui.invoiceEditor.lineEffectProduct
+                    : ui.invoiceEditor.lineEffectService}{" "}
+                  <span
+                    className={`font-medium ${
+                      draftSignedContribution(line) < 0
+                        ? "text-red-300/95"
+                        : "text-[var(--accent)]"
+                    }`}
+                  >
+                    {draftSignedContribution(line).toFixed(2)}
                   </span>
                 </p>
               </li>
@@ -457,8 +474,12 @@ function InvoiceEditorForm({
         )}
 
         <p className="mt-6 text-right text-sm text-[var(--foreground)]">
-          Draft total:{" "}
-          <span className="text-lg font-semibold text-[var(--accent)]">
+          {ui.invoiceEditor.draftTotal}{" "}
+          <span
+            className={`text-lg font-semibold ${
+              draftTotal < 0 ? "text-red-300/95" : "text-[var(--accent)]"
+            }`}
+          >
             {draftTotal.toFixed(2)}
           </span>
         </p>
@@ -480,16 +501,16 @@ function InvoiceEditorForm({
           className="rounded-lg bg-gradient-to-r from-[var(--accent-dim)] to-[var(--accent)] px-6 py-3 text-sm font-semibold uppercase tracking-widest text-black shadow-[0_0_24px_-4px_var(--accent)] disabled:opacity-50"
         >
           {submitting
-            ? "Saving…"
+            ? ui.invoiceEditor.saving
             : invoiceId == null
-              ? "Create invoice"
-              : "Save invoice"}
+              ? ui.invoiceEditor.saveCreate
+              : ui.invoiceEditor.saveUpdate}
         </button>
         <Link
           href="/dashboard/invoices"
           className="inline-flex items-center rounded-lg border border-white/15 px-6 py-3 text-sm font-medium text-[var(--muted)] transition-colors hover:border-white/25 hover:text-[var(--foreground)]"
         >
-          Cancel
+          {ui.invoiceEditor.cancel}
         </Link>
         {invoiceId != null ? (
           <button
@@ -498,7 +519,9 @@ function InvoiceEditorForm({
             onClick={handleDeleteInvoice}
             className="ml-auto rounded-lg border border-red-500/40 px-4 py-3 text-sm font-medium text-red-300 transition-colors hover:bg-red-950/30 disabled:opacity-50"
           >
-            {deleteMutation.isPending ? "Deleting…" : "Delete invoice"}
+            {deleteMutation.isPending
+              ? ui.invoiceEditor.deleting
+              : ui.invoiceEditor.deleteInvoice}
           </button>
         ) : null}
       </div>
@@ -542,10 +565,10 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
       <div className="rounded-xl border border-red-500/25 bg-red-950/30 p-6 text-red-200">
         {err instanceof AuthApiError
           ? err.errors.join(" ") || err.message
-          : "Could not load invoice."}
+          : ui.invoiceEditor.loadError}
         <div className="mt-4">
           <Link href="/dashboard/invoices" className="underline">
-            Back to tabs
+            {ui.invoiceEditor.backToTabs}
           </Link>
         </div>
       </div>
